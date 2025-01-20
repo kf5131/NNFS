@@ -17,18 +17,31 @@ class TestNeuralNetwork(unittest.TestCase):
         
     def test_forward_pass(self):
         X = np.array([[0.5, 0.1]])
-        activations = self.nn.forward(X)
-        self.assertEqual(len(activations), 3)  # Input + 2 hidden layers
-        self.assertEqual(activations[0].shape, (1, 2))  # Input layer
-        self.assertEqual(activations[1].shape, (1, 3))  # Hidden layer
-        self.assertEqual(activations[2].shape, (1, 1))  # Output layer
+        output = self.nn.forward(X)
+        self.assertEqual(output.shape, (1, 1))
+        # Add value range check
+        self.assertTrue(np.all((output >= 0) & (output <= 1)))
+        # Test with batch of samples
+        X_batch = np.random.rand(5, 2)
+        output_batch = self.nn.forward(X_batch)
+        self.assertEqual(output_batch.shape, (5, 1))
         
-    def test_training(self):
+    def test_evaluation(self):
         X = np.array([[0, 0], [0, 1], [1, 0], [1, 1]])
         y = np.array([[0], [1], [1], [0]])
-        history = self.nn.train(X, y, epochs=100, verbose=False)
-        self.assertEqual(len(history), 100)
-        self.assertIsInstance(history[0], float)
+        
+        # Train the network
+        self.nn.train(X, y, epochs=100, learning_rate=0.1)
+        
+        # Test evaluation
+        loss = self.nn.evaluate(X, y)
+        self.assertIsInstance(loss, float)
+        self.assertTrue(loss >= 0)
+        
+        # Test predictions
+        predictions = self.nn.predict(X)
+        self.assertEqual(predictions.shape, (4, 1))
+        self.assertTrue(np.all((predictions >= 0) & (predictions <= 1)))
         
     def test_prediction(self):
         X = np.array([[0.5, 0.1]])
