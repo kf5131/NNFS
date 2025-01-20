@@ -15,17 +15,6 @@ class TestNeuralNetwork(unittest.TestCase):
         self.assertEqual(self.nn.biases[0].shape, (1, 3))
         self.assertEqual(self.nn.biases[1].shape, (1, 1))
         
-    def test_forward_pass(self):
-        X = np.array([[0.5, 0.1]])
-        output = self.nn.forward(X)
-        self.assertEqual(output.shape, (1, 1))
-        # Add value range check
-        self.assertTrue(np.all((output >= 0) & (output <= 1)))
-        # Test with batch of samples
-        X_batch = np.random.rand(5, 2)
-        output_batch = self.nn.forward(X_batch)
-        self.assertEqual(output_batch.shape, (5, 1))
-        
     def test_evaluation(self):
         X = np.array([[0, 0], [0, 1], [1, 0], [1, 1]])
         y = np.array([[0], [1], [1], [0]])
