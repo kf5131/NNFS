@@ -97,9 +97,19 @@ def main():
     # Fetch MNIST dataset
     (X_train, y_train), (X_test, y_test) = fetch_mnist(force_download=False)
 
+    # Validate data before processing
+    if np.isnan(X_train).any() or np.isnan(X_test).any():
+        raise ValueError("Input data contains NaN values")
+    if not np.isfinite(X_train).all() or not np.isfinite(X_test).all():
+        raise ValueError("Input data contains infinite values")
+
     # Normalize pixel values to range [0, 1]
     X_train = X_train / 255.0
     X_test = X_test / 255.0
+
+    # Validate normalization
+    if np.max(X_train) > 1.0 or np.min(X_train) < 0.0:
+        raise ValueError("Training data not properly normalized to [0,1]")
 
     # Convert labels to one-hot encoding
     num_classes = 10
@@ -108,24 +118,28 @@ def main():
     y_train_onehot[np.arange(y_train.size), y_train.astype(int)] = 1
     y_test_onehot[np.arange(y_test.size), y_test.astype(int)] = 1
 
+    # Validate one-hot encoding
+    if not np.all(np.sum(y_train_onehot, axis=1) == 1):
+        raise ValueError("Training labels not properly one-hot encoded")
+
     # Create and train neural network with improved parameters
     print("Training neural network...")
     input_size = X_train.shape[1]
     nn = NeuralNetwork(
-        layer_sizes=[input_size, 512, 256, 128, num_classes],  # Deeper and wider architecture
+        layer_sizes=[input_size, 256, 128, num_classes],
         activation='relu',
         loss='cce',
         use_dropout=True,
-        dropout_rate=0.2,  # Slightly increased dropout
+        dropout_rate=0.2,  # lower dropout
         use_batch_norm=True
     )
     
     history = nn.train(
         X_train, 
         y_train_onehot,
-        epochs=100,  # Increased epochs to allow for better convergence
-        learning_rate=0.001,  # Reduced learning rate for more stable convergence
-        batch_size=64,  # Smaller batch size for better generalization
+        epochs=200,  # increased epochs
+        learning_rate=0.0005,
+        batch_size=128,
         validation_data=(X_test, y_test_onehot)
     )
 
