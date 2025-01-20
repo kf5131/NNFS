@@ -1,2 +1,6 @@
 numpy
 matplotlib
+pytest
+pytest-cov
+black
+flake8
