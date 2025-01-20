@@ -97,7 +97,9 @@ def main():
     # Fetch MNIST dataset
     (X_train, y_train), (X_test, y_test) = fetch_mnist(force_download=False)
 
-    # Validate data before processing
+    # More thorough data validation
+    print("Validating input data...")
+    # Check for NaN and infinite values
     if np.isnan(X_train).any() or np.isnan(X_test).any():
         raise ValueError("Input data contains NaN values")
     if not np.isfinite(X_train).all() or not np.isfinite(X_test).all():
@@ -110,6 +112,8 @@ def main():
     # Validate normalization
     if np.max(X_train) > 1.0 or np.min(X_train) < 0.0:
         raise ValueError("Training data not properly normalized to [0,1]")
+    if np.max(X_test) > 1.0 or np.min(X_test) < 0.0:
+        raise ValueError("Test data not properly normalized to [0,1]")
 
     # Convert labels to one-hot encoding
     num_classes = 10
@@ -121,8 +125,12 @@ def main():
     # Validate one-hot encoding
     if not np.all(np.sum(y_train_onehot, axis=1) == 1):
         raise ValueError("Training labels not properly one-hot encoded")
+    if not np.all(np.sum(y_test_onehot, axis=1) == 1):
+        raise ValueError("Test labels not properly one-hot encoded")
+    if not np.all((y_train_onehot >= 0) & (y_train_onehot <= 1)):
+        raise ValueError("Training labels contain values outside [0,1]")
 
-    # Create and train neural network with improved parameters
+    # Create and train neural network
     print("Training neural network...")
     input_size = X_train.shape[1]
     nn = NeuralNetwork(
@@ -130,15 +138,37 @@ def main():
         activation='relu',
         loss='cce',
         use_dropout=True,
-        dropout_rate=0.2,  # lower dropout
-        use_batch_norm=True
+        dropout_rate=0.2,
+        use_batch_norm=True,
+        gradient_clip=5.0  # Increased gradient clipping threshold
     )
+    
+    # Calculate total steps for learning rate schedule
+    steps_per_epoch = int(np.ceil(len(X_train) / 128))  # batch_size = 128
+    total_steps = steps_per_epoch * 200  # 200 epochs
+    
+    # Warmup steps (first 5 epochs)
+    warmup_steps = steps_per_epoch * 5
+    
+    def learning_rate_schedule(step):
+        """Custom learning rate schedule with warmup and cosine decay"""
+        initial_lr = 0.001
+        min_lr = 0.0001
+        
+        # Warm-up phase
+        if step < warmup_steps:
+            return initial_lr * (step / warmup_steps)
+        
+        # Cosine decay after warmup
+        progress = (step - warmup_steps) / (total_steps - warmup_steps)
+        cosine_decay = 0.5 * (1 + np.cos(np.pi * progress))
+        return min_lr + (initial_lr - min_lr) * cosine_decay
     
     history = nn.train(
         X_train, 
         y_train_onehot,
-        epochs=200,  # increased epochs
-        learning_rate=0.0005,
+        epochs=200,
+        learning_rate_schedule=learning_rate_schedule,  # Pass schedule instead of fixed rate
         batch_size=128,
         validation_data=(X_test, y_test_onehot)
     )
