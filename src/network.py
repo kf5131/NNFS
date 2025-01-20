@@ -1,6 +1,6 @@
 import numpy as np
 from src.activations import sigmoid, sigmoid_derivative, relu, relu_derivative, tanh, tanh_derivative
-from src.losses import MSE, BinaryCrossEntropy
+from src.losses import MSE, CategoricalCrossEntropy
 from tqdm import tqdm
 
 def softmax(x):
@@ -19,7 +19,7 @@ class NeuralNetwork:
         Args:
             layer_sizes (list): List of integers for number of neurons in each layer
             activation (str): Activation function to use ('sigmoid', 'relu', or 'tanh')
-            loss (str): Loss function to use ('mse' or 'bce')
+            loss (str): Loss function to use ('mse' or 'cce')
             use_dropout (bool): Whether to use dropout
             dropout_rate (float): Dropout rate
             use_batch_norm (bool): Whether to use batch normalization
@@ -67,10 +67,10 @@ class NeuralNetwork:
         # Set loss function
         if loss == 'mse':
             self.loss = MSE()
-        elif loss == 'bce':
-            self.loss = BinaryCrossEntropy()
+        elif loss == 'cce':
+            self.loss = CategoricalCrossEntropy()
         else:
-            raise ValueError("Loss must be 'mse' or 'bce'")
+            raise ValueError("Loss must be 'mse' or 'cce'")
             
     def batch_norm_forward(self, x, gamma, beta, running_mean, running_var, training=True):
         """Batch normalization forward pass"""
@@ -83,14 +83,16 @@ class NeuralNetwork:
             x_norm = (x - mu) / np.sqrt(var)
             out = gamma * x_norm + beta
             
-            # Update running statistics
-            running_mean = momentum * running_mean + (1 - momentum) * mu
-            running_var = momentum * running_var + (1 - momentum) * var
+            # Update running statistics - update the specific array, not the entire list
+            running_mean[:] = momentum * running_mean + (1 - momentum) * mu
+            running_var[:] = momentum * running_var + (1 - momentum) * var
+            
+            return out, x_norm, mu, var
         else:
+            # During inference, use running statistics
             x_norm = (x - running_mean) / np.sqrt(running_var + eps)
             out = gamma * x_norm + beta
-            
-        return out, x_norm, mu, var
+            return out, x_norm, running_mean, running_var
 
     def forward(self, X, training=True):
         """Forward pass with dropout and batch normalization"""
@@ -128,7 +130,7 @@ class NeuralNetwork:
         
         if training and self.use_dropout:
             return activations, dropout_masks
-        return activations
+        return activations[-1]  # Return only the final layer output when not training
         
     def backward(self, X, y, learning_rate=0.01):
         """
@@ -233,4 +235,4 @@ class NeuralNetwork:
         Returns:
             np.ndarray: Predictions
         """
-        return self.forward(X)[-1]
+        return self.forward(X, training=False)  # Make sure training=False for predictions
