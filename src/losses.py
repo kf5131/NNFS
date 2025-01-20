@@ -41,32 +41,13 @@ class MSE(Loss):
 class CategoricalCrossEntropy(Loss):
     """Categorical Cross Entropy loss for multi-class classification"""
     def calculate(self, predicted, actual):
-        """
-        Calculate CCE loss
-        
-        Args:
-            predicted (np.ndarray): Predicted probabilities for each class
-            actual (np.ndarray): One-hot encoded actual values
-            
-        Returns:
-            float: CCE loss value
-        """
-        epsilon = 1e-15
+        """Calculate CCE loss"""
+        epsilon = 1e-7  # Smaller epsilon
         predicted = np.clip(predicted, epsilon, 1 - epsilon)
-        loss = -np.sum(actual * np.log(predicted)) / predicted.shape[0]
-        return loss
+        return -np.mean(np.sum(actual * np.log(predicted), axis=1))
         
     def derivative(self, predicted, actual):
-        """
-        Calculate derivative of categorical cross entropy
-        
-        Args:
-            predicted (np.ndarray): Predicted probabilities for each class
-            actual (np.ndarray): One-hot encoded actual values
-            
-        Returns:
-            np.ndarray: Loss gradient
-        """
-        epsilon = 1e-15
+        """Calculate derivative of categorical cross entropy"""
+        epsilon = 1e-7  # Smaller epsilon
         predicted = np.clip(predicted, epsilon, 1 - epsilon)
-        return (predicted - actual) / predicted.shape[0]
+        return predicted - actual  # Simplified form when using softmax
