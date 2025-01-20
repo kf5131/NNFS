@@ -23,9 +23,26 @@ This project implements a basic neural network from scratch in Python, demonstra
 git clone https://github.com/kf5131/NNFS.git
 cd NNFS
 ```
-
-2. Install the required dependencies:
+2. Run setup script:
 
 ```bash
-pip install -r requirements.txt
+chmod +x scripts/setup.sh
+./scripts/setup.sh
 ```
+
+This will:
+- Create a virtual environment
+- Activate the virtual environment
+- Install required dependencies
+- Install the package in development mode
+
+## Testing
+
+To run the tests, use the following command:
+
+```bash
+chmod +x scripts/test.sh
+./scripts/test.sh
+```
+
+This will run the test suite and print the results to the console.
