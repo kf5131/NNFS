@@ -46,3 +46,15 @@ chmod +x scripts/test.sh
 ```
 
 This will run the test suite and print the results to the console.
+
+## Examples
+
+To run the examples, use the following commands:
+
+### MNIST Example
+```bash
+python examples/mnist_example.py
+```
+
+This will run the MNIST example and print the results to the console. Expect to see the accuracy of ~80% after 200 epochs.
+
