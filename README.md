@@ -51,11 +51,27 @@ This will:
 To run the tests, use the following command:
 
 ```bash
-chmod +x scripts/test.sh
-./scripts/test.sh
+chmod +x scripts/run_tests.sh
+./scripts/run_tests.sh
 ```
 
-This will run the test suite and print the results to the console.
+This will:
+- Run all unit tests
+- Generate a coverage report
+- Display test results and coverage statistics in the console
+
+For running specific test files or test cases:
+
+```bash
+# Run a specific test file
+pytest tests/test_specific_file.py
+
+# Run a specific test case
+pytest tests/test_file.py::test_specific_case
+
+# Run tests with verbose output
+pytest -v
+```
 
 ## Examples
 
