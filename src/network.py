@@ -105,6 +105,8 @@ class NeuralNetwork:
 
     def forward(self, X, training=True):
         """Forward pass with dropout and batch normalization"""
+        # Store all intermediate values needed for backprop
+        cache = {}
         activations = [X]
         if training and self.use_dropout:
             dropout_masks = []
@@ -112,9 +114,12 @@ class NeuralNetwork:
         for i in range(self.num_layers - 1):
             net = np.dot(activations[-1], self.weights[i]) + self.biases[i]
             
+            # Store pre-activation values
+            cache[f'net_{i}'] = net
+            
             # Apply batch normalization before activation (except last layer)
             if self.use_batch_norm and i < self.num_layers - 2:
-                net, _, _, _ = self.batch_norm_forward(
+                net, x_norm, mu, var = self.batch_norm_forward(
                     net, 
                     self.gamma[i], 
                     self.beta[i],
@@ -122,6 +127,8 @@ class NeuralNetwork:
                     self.running_var[i],
                     training
                 )
+                # Store batch norm intermediate values
+                cache[f'bn_{i}'] = (x_norm, mu, var)
             
             # Apply activation
             if i == self.num_layers - 2:  # Last layer
@@ -137,33 +144,19 @@ class NeuralNetwork:
             
             activations.append(activation)
         
-        if training and self.use_dropout:
-            return activations, dropout_masks
-        return activations[-1]  # Return only the final layer output when not training
+        if training:
+            return activations, cache, dropout_masks if self.use_dropout else None
+        return activations[-1]
         
     def backward(self, X, y, learning_rate=0.01):
-        """
-        Backward pass through network
-        """
+        """Backward pass through network"""
         m = X.shape[0]
         
-        # Get activations (and dropout masks if using dropout)
+        # Get activations and cached values
         if self.use_dropout:
-            activations, dropout_masks = self.forward(X)
-            if not isinstance(activations, list):
-                activations = [X, activations]
+            activations, cache, dropout_masks = self.forward(X)
         else:
-            output = self.forward(X)
-            activations = [X]  # Start with input layer
-            current_input = X
-            # Calculate intermediate activations
-            for i in range(self.num_layers - 1):
-                net = np.dot(current_input, self.weights[i]) + self.biases[i]
-                if i == self.num_layers - 2:  # Last layer
-                    current_input = softmax(net)
-                else:
-                    current_input = self.activation(net)
-                activations.append(current_input)
+            activations, cache, _ = self.forward(X)
         
         # Calculate initial error
         loss_value = self.loss.calculate(activations[-1], y)
@@ -171,21 +164,52 @@ class NeuralNetwork:
         
         # Backpropagate error
         for i in range(self.num_layers - 2, -1, -1):
-            # For the last layer, we already have the correct delta
+            # For layers before the last layer
             if i < self.num_layers - 2:
-                # Calculate gradient with respect to pre-activation
+                # First calculate the gradient with respect to pre-activation
                 delta = np.dot(delta, self.weights[i+1].T)
                 delta = delta * self.activation_derivative(activations[i+1])
                 
                 # Apply dropout mask if using dropout
                 if self.use_dropout:
                     delta *= dropout_masks[i]
+                
+                # Calculate gradient with respect to batch norm output (if used)
+                if self.use_batch_norm:
+                    x_norm, mu, var = cache[f'bn_{i}']
+                    eps = 1e-5
+                    
+                    # Get the current layer's pre-activation values
+                    current_net = cache[f'net_{i}']
+                    
+                    # Gradients for batch norm parameters
+                    dgamma = np.sum(delta * x_norm, axis=0)
+                    dbeta = np.sum(delta, axis=0)
+                    
+                    # Gradient with respect to normalized input
+                    dx_norm = delta * self.gamma[i]
+                    
+                    # Gradient with respect to variance
+                    dvar = np.sum(dx_norm * (current_net - mu) * -0.5 * (var + eps)**(-1.5), axis=0)
+                    
+                    # Gradient with respect to mean
+                    dmu = np.sum(dx_norm * -1/np.sqrt(var + eps), axis=0)
+                    dmu += dvar * np.mean(-2 * (current_net - mu), axis=0)
+                    
+                    # Gradient with respect to input
+                    delta = dx_norm / np.sqrt(var + eps)
+                    delta += 2 * dvar * (current_net - mu) / m
+                    delta += dmu / m
+                    
+                    # Update batch norm parameters
+                    self.gamma[i] -= learning_rate * dgamma
+                    self.beta[i] -= learning_rate * dbeta
             
-            # Calculate gradients
+            # Calculate weight and bias gradients
             dW = np.dot(activations[i].T, delta) / m
             db = np.sum(delta, axis=0, keepdims=True) / m
             
-            # Gradient clipping to prevent explosion
+            # Gradient clipping
             dW = np.clip(dW, -self.gradient_clip, self.gradient_clip)
             db = np.clip(db, -self.gradient_clip, self.gradient_clip)
             
