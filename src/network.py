@@ -1,6 +1,7 @@
 import numpy as np
 from src.activations import sigmoid, sigmoid_derivative, relu, relu_derivative, tanh, tanh_derivative
 from src.losses import MSE, BinaryCrossEntropy
+from tqdm import tqdm
 
 class NeuralNetwork:
     """Neural Network implementation"""
@@ -95,7 +96,7 @@ class NeuralNetwork:
             
         return loss_value
         
-    def train(self, X, y, epochs=1000, learning_rate=0.01, verbose=True):
+    def train(self, X, y, epochs=100, learning_rate=0.1, batch_size=None):
         """
         Train the neural network
         
@@ -104,17 +105,17 @@ class NeuralNetwork:
             y (np.ndarray): Target values
             epochs (int): Number of training epochs
             learning_rate (float): Learning rate for gradient descent
-            verbose (bool): Whether to print progress
+            batch_size (int): Batch size for mini-batch gradient descent
             
         Returns:
             list: Training loss history
         """
         history = []
-        for epoch in range(epochs):
+        for epoch in tqdm(range(epochs), desc='Training Progress'):
             loss = self.backward(X, y, learning_rate)
             history.append(loss)
             
-            if verbose and epoch % 100 == 0:
+            if epoch % 10 == 0:
                 print(f"Epoch {epoch}, Loss: {loss:.4f}")
                 
         return history
