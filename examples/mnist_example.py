@@ -1,5 +1,4 @@
 import numpy as np
-import gzip
 import urllib.request
 from tqdm import tqdm
 import time
@@ -115,7 +114,7 @@ def main():
     nn = NeuralNetwork(
         layer_sizes=[input_size, 256, 128, 64, num_classes],  # Slightly smaller network
         activation='relu',
-        loss='bce',
+        loss='cce',
         use_dropout=True,
         dropout_rate=0.15,  # Reduced dropout rate
         use_batch_norm=True
