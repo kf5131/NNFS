@@ -36,9 +36,7 @@ class Dense(Layer):
         """
         self.inputs = inputs
         result = np.dot(inputs, self.weights)
-        print("Matrix multiplication result:", result)
         final = result + self.biases
-        print("After adding biases:", final)
         return final
         
     def backward(self, grad):
