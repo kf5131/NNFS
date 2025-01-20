@@ -150,32 +150,32 @@ class NeuralNetwork:
         # Get activations (and dropout masks if using dropout)
         if self.use_dropout:
             activations, dropout_masks = self.forward(X)
+            if not isinstance(activations, list):
+                activations = [X, activations]
         else:
-            activations = self.forward(X)
+            output = self.forward(X)
+            activations = [X]  # Start with input layer
+            current_input = X
+            # Calculate intermediate activations
+            for i in range(self.num_layers - 1):
+                net = np.dot(current_input, self.weights[i]) + self.biases[i]
+                if i == self.num_layers - 2:  # Last layer
+                    current_input = softmax(net)
+                else:
+                    current_input = self.activation(net)
+                activations.append(current_input)
         
         # Calculate initial error
         loss_value = self.loss.calculate(activations[-1], y)
         delta = self.loss.derivative(activations[-1], y)
-        
-        # Store the weighted sums (pre-activations) during forward pass
-        weighted_sums = []
-        current_input = activations[0]  # Use stored activation instead of X
-        for i in range(self.num_layers - 1):
-            weighted_sum = np.dot(current_input, self.weights[i]) + self.biases[i]
-            weighted_sums.append(weighted_sum)
-            if i == self.num_layers - 2:  # Last layer
-                current_input = softmax(weighted_sum)
-            else:
-                current_input = self.activation(weighted_sum)
-                if self.use_dropout:
-                    current_input *= dropout_masks[i]
         
         # Backpropagate error
         for i in range(self.num_layers - 2, -1, -1):
             # For the last layer, we already have the correct delta
             if i < self.num_layers - 2:
                 # Calculate gradient with respect to pre-activation
-                delta = delta * self.activation_derivative(weighted_sums[i])
+                delta = np.dot(delta, self.weights[i+1].T)
+                delta = delta * self.activation_derivative(activations[i+1])
                 
                 # Apply dropout mask if using dropout
                 if self.use_dropout:
@@ -188,9 +188,6 @@ class NeuralNetwork:
             # Gradient clipping to prevent explosion
             dW = np.clip(dW, -self.gradient_clip, self.gradient_clip)
             db = np.clip(db, -self.gradient_clip, self.gradient_clip)
-            
-            if i > 0:
-                delta = np.dot(delta, self.weights[i].T)
             
             # Update weights and biases
             self.weights[i] -= learning_rate * dW
@@ -211,7 +208,7 @@ class NeuralNetwork:
             batch_size: Size of mini-batches
             validation_data: Optional tuple of (X_val, y_val) for validation
         """
-        history = []
+        history = {'loss': []}  # Changed to dictionary with 'loss' key
         n_samples = X.shape[0]
         
         for epoch in tqdm(range(epochs), desc='Training Progress'):
@@ -236,12 +233,26 @@ class NeuralNetwork:
             
             # Average loss for the epoch
             epoch_loss /= n_samples
-            history.append(epoch_loss)
+            history['loss'].append(epoch_loss)  # Store loss in history dictionary
             
             if epoch % 5 == 0:
                 print(f"Epoch {epoch}, Loss: {epoch_loss:.4f}, LR: {current_lr:.6f}")
         
         return history
+
+    def evaluate(self, X, y):
+        """
+        Evaluate the model on given data
+        
+        Args:
+            X (np.ndarray): Input data
+            y (np.ndarray): Target data
+            
+        Returns:
+            float: Loss value
+        """
+        predictions = self.forward(X, training=False)
+        return self.loss.calculate(predictions, y)
         
     def predict(self, X):
         """
