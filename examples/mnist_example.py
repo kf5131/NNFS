@@ -112,20 +112,20 @@ def main():
     print("Training neural network...")
     input_size = X_train.shape[1]
     nn = NeuralNetwork(
-        layer_sizes=[input_size, 256, 128, 64, num_classes],  # Slightly smaller network
+        layer_sizes=[input_size, 512, 256, 128, num_classes],  # Deeper and wider architecture
         activation='relu',
         loss='cce',
         use_dropout=True,
-        dropout_rate=0.15,  # Reduced dropout rate
+        dropout_rate=0.2,  # Slightly increased dropout
         use_batch_norm=True
     )
     
     history = nn.train(
         X_train, 
         y_train_onehot,
-        epochs=150,
-        learning_rate=0.01,  # Reduced learning rate
-        batch_size=128,  # Increased batch size
+        epochs=100,  # Increased epochs to allow for better convergence
+        learning_rate=0.001,  # Reduced learning rate for more stable convergence
+        batch_size=64,  # Smaller batch size for better generalization
         validation_data=(X_test, y_test_onehot)
     )
 
