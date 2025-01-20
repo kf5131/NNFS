@@ -35,7 +35,11 @@ class Dense(Layer):
             np.ndarray: Output after linear transformation
         """
         self.inputs = inputs
-        return np.dot(inputs, self.weights) + self.biases
+        result = np.dot(inputs, self.weights)
+        print("Matrix multiplication result:", result)
+        final = result + self.biases
+        print("After adding biases:", final)
+        return final
         
     def backward(self, grad):
         """
