@@ -82,5 +82,5 @@ To run the examples, use the following commands:
 python examples/mnist_example.py
 ```
 
-This will run the MNIST example, print the results to the console, and show a plot of the loss over time . Expect to see the accuracy of ~87% after 200 epochs.
+This will run the MNIST example, print the results to the console, and show a plot of the loss over time. Expect to see the accuracy of ~97% after 200 epochs.
 
