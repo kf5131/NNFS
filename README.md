@@ -14,6 +14,16 @@ This project implements a basic neural network from scratch in Python, demonstra
 
 - Python 3.6+
 - NumPy
+- Matplotlib
+- scikit-learn
+- TQDM
+- Development dependencies:
+  - pytest
+  - pytest-cov
+  - black
+  - flake8
+  - setuptools
+
 
 ## Installation
 
@@ -56,5 +66,5 @@ To run the examples, use the following commands:
 python examples/mnist_example.py
 ```
 
-This will run the MNIST example and print the results to the console. Expect to see the accuracy of ~80% after 200 epochs.
+This will run the MNIST example, print the results, and show a plot of the loss over time to the console. Expect to see the accuracy of ~87% after 200 epochs.
 
