@@ -14,13 +14,14 @@ class Dense(Layer):
     """Fully connected layer"""
     def __init__(self, input_size, output_size):
         """
-        Initialize Dense layer
+        Initialize Dense layer with He initialization
         
         Args:
             input_size (int): Size of input
             output_size (int): Size of output
         """
-        self.weights = np.random.randn(input_size, output_size) * 0.01
+        # He initialization
+        self.weights = np.random.randn(input_size, output_size) * np.sqrt(2.0 / input_size)
         self.biases = np.zeros((1, output_size))
         self.inputs = None
         
@@ -35,9 +36,7 @@ class Dense(Layer):
             np.ndarray: Output after linear transformation
         """
         self.inputs = inputs
-        result = np.dot(inputs, self.weights)
-        final = result + self.biases
-        return final
+        return np.dot(inputs, self.weights) + self.biases
         
     def backward(self, grad):
         """
@@ -79,7 +78,8 @@ class Activation(Layer):
             np.ndarray: Activated output
         """
         self.inputs = inputs
-        return self.activation_fn(inputs)
+        self.outputs = self.activation_fn(inputs)  # Store activated outputs
+        return self.outputs
         
     def backward(self, grad):
         """
