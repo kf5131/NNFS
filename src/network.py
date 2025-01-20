@@ -13,7 +13,8 @@ def softmax(x):
 class NeuralNetwork:
     """Neural Network implementation"""
     
-    def __init__(self, layer_sizes, activation='relu', loss='mse', use_dropout=False, dropout_rate=0.2, use_batch_norm=False):
+    def __init__(self, layer_sizes, activation='relu', loss='mse', use_dropout=False, 
+                 dropout_rate=0.2, use_batch_norm=False, gradient_clip=5.0):
         """
         Initialize neural network with additional features
         
@@ -24,12 +25,15 @@ class NeuralNetwork:
             use_dropout (bool): Whether to use dropout
             dropout_rate (float): Dropout rate
             use_batch_norm (bool): Whether to use batch normalization
+            gradient_clip (float): Maximum allowed gradient norm
         """
         self.layer_sizes = layer_sizes
         self.num_layers = len(layer_sizes)
         self.use_dropout = use_dropout
         self.dropout_rate = dropout_rate
         self.use_batch_norm = use_batch_norm
+        self.gradient_clip = gradient_clip
+        self.current_step = 0  # Add step counter for learning rate schedule
         
         # Initialize weights, biases, and batch norm parameters
         self.weights = []
@@ -182,8 +186,8 @@ class NeuralNetwork:
             db = np.sum(delta, axis=0, keepdims=True) / m
             
             # Gradient clipping to prevent explosion
-            dW = np.clip(dW, -1.0, 1.0)
-            db = np.clip(db, -1.0, 1.0)
+            dW = np.clip(dW, -self.gradient_clip, self.gradient_clip)
+            db = np.clip(db, -self.gradient_clip, self.gradient_clip)
             
             if i > 0:
                 delta = np.dot(delta, self.weights[i].T)
@@ -194,23 +198,25 @@ class NeuralNetwork:
         
         return loss_value
         
-    def train(self, X, y, epochs=50, learning_rate=0.001, batch_size=32, validation_data=None):
+    def train(self, X, y, epochs=50, learning_rate=0.001, learning_rate_schedule=None, batch_size=32, validation_data=None):
         """
         Train the neural network using mini-batch gradient descent
+        
+        Args:
+            X: Input data
+            y: Target data
+            epochs: Number of epochs to train
+            learning_rate: Base learning rate (used if no schedule provided)
+            learning_rate_schedule: Optional function that takes step count and returns learning rate
+            batch_size: Size of mini-batches
+            validation_data: Optional tuple of (X_val, y_val) for validation
         """
         history = []
         n_samples = X.shape[0]
         
-        # Learning rate schedule
-        initial_lr = learning_rate
-        
         for epoch in tqdm(range(epochs), desc='Training Progress'):
             epoch_loss = 0
-            # Generate random indices for shuffling
             indices = np.random.permutation(n_samples)
-            
-            # Adjust learning rate (learning rate decay)
-            current_lr = initial_lr / (1 + epoch * 0.1)
             
             # Mini-batch training
             for start_idx in range(0, n_samples, batch_size):
@@ -218,15 +224,22 @@ class NeuralNetwork:
                 X_batch = X[batch_indices]
                 y_batch = y[batch_indices]
                 
+                # Get current learning rate from schedule or use fixed rate
+                if learning_rate_schedule is not None:
+                    current_lr = learning_rate_schedule(self.current_step)
+                else:
+                    current_lr = learning_rate
+                
                 loss = self.backward(X_batch, y_batch, current_lr)
                 epoch_loss += loss * len(batch_indices)
+                self.current_step += 1
             
             # Average loss for the epoch
             epoch_loss /= n_samples
             history.append(epoch_loss)
             
             if epoch % 5 == 0:
-                print(f"Epoch {epoch}, Loss: {epoch_loss:.4f}")
+                print(f"Epoch {epoch}, Loss: {epoch_loss:.4f}, LR: {current_lr:.6f}")
         
         return history
         
