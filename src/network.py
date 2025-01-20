@@ -5,8 +5,9 @@ from tqdm import tqdm
 
 def softmax(x):
     """Compute softmax values for each set of scores in x."""
-    # Subtract max for numerical stability
-    exp_x = np.exp(x - np.max(x, axis=1, keepdims=True))
+    # Subtract max for numerical stability (per sample)
+    shifted_x = x - np.max(x, axis=1, keepdims=True)
+    exp_x = np.exp(shifted_x)
     return exp_x / np.sum(exp_x, axis=1, keepdims=True)
 
 class NeuralNetwork:
@@ -40,10 +41,14 @@ class NeuralNetwork:
             self.running_var = []
         
         for i in range(self.num_layers - 1):
-            # He initialization
-            scale = np.sqrt(2.0 / layer_sizes[i])
+            # More conservative initialization
+            if activation == 'relu':
+                scale = np.sqrt(1.0 / layer_sizes[i])  # Changed from 2.0 to 1.0
+            else:
+                scale = np.sqrt(2.0 / (layer_sizes[i] + layer_sizes[i+1]))  # Xavier/Glorot initialization
+            
             self.weights.append(np.random.randn(layer_sizes[i], layer_sizes[i+1]) * scale)
-            self.biases.append(np.zeros((1, layer_sizes[i+1])))
+            self.biases.append(np.zeros((1, layer_sizes[i+1])))  # Initialize all biases to zero
             
             if self.use_batch_norm and i < self.num_layers - 2:  # No batch norm in last layer
                 self.gamma.append(np.ones((1, layer_sizes[i+1])))
