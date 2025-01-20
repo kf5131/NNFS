@@ -16,3 +16,16 @@ This project implements a basic neural network from scratch in Python, demonstra
 - NumPy
 
 ## Installation
+
+1. Clone the repository:
+
+```bash
+git clone https://github.com/kf5131/NNFS.git
+cd NNFS
+```
+
+2. Install the required dependencies:
+
+```bash
+pip install -r requirements.txt
+```
