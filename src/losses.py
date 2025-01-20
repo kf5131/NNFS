@@ -39,33 +39,36 @@ class MSE(Loss):
         return 2 * (predicted - actual) / predicted.size
 
 class BinaryCrossEntropy(Loss):
-    """Binary Cross Entropy loss"""
+    """Categorical Cross Entropy loss for multi-class classification"""
     def calculate(self, predicted, actual):
         """
-        Calculate BCE loss
+        Calculate CCE loss
         
         Args:
-            predicted (np.ndarray): Predicted values (after sigmoid)
-            actual (np.ndarray): Actual values
+            predicted (np.ndarray): Predicted probabilities for each class
+            actual (np.ndarray): One-hot encoded actual values
             
         Returns:
-            float: BCE loss value
+            float: CCE loss value
         """
-        epsilon = 1e-15  # Small constant to avoid log(0)
+        epsilon = 1e-15
         predicted = np.clip(predicted, epsilon, 1 - epsilon)
-        return -np.mean(actual * np.log(predicted) + (1 - actual) * np.log(1 - predicted))
+        # Compute cross entropy
+        loss = -np.sum(actual * np.log(predicted)) / predicted.shape[0]
+        return loss
         
     def derivative(self, predicted, actual):
         """
-        Calculate BCE derivative
+        Calculate CCE derivative
         
         Args:
-            predicted (np.ndarray): Predicted values (after sigmoid)
-            actual (np.ndarray): Actual values
+            predicted (np.ndarray): Predicted probabilities for each class
+            actual (np.ndarray): One-hot encoded actual values
             
         Returns:
             np.ndarray: Loss gradient
         """
         epsilon = 1e-15
         predicted = np.clip(predicted, epsilon, 1 - epsilon)
-        return -(actual / predicted - (1 - actual) / (1 - predicted)) / predicted.size
+        # Simple gradient for cross entropy with softmax
+        return (predicted - actual) / predicted.shape[0]
