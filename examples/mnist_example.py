@@ -180,7 +180,7 @@ def main():
 
     # Plot training loss
     plt.figure(figsize=(10, 6))
-    plt.plot(history)
+    plt.plot(history['loss'])  # Access the 'loss' key from history dictionary
     plt.title('Training Loss Over Time')
     plt.xlabel('Epoch')
     plt.ylabel('Loss')
